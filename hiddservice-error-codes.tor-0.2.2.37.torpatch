@@ -1,0 +1,99 @@
+diff --git a/src/common/compat.h b/src/common/compat.h
+index fc70caf..abbe36b 100644
+--- a/src/common/compat.h
++++ b/src/common/compat.h
+@@ -531,6 +531,10 @@ typedef enum {
+   SOCKS5_TTL_EXPIRED                = 0x06,
+   SOCKS5_COMMAND_NOT_SUPPORTED      = 0x07,
+   SOCKS5_ADDRESS_TYPE_NOT_SUPPORTED = 0x08,
++  SOCKS5_BAD_ONION_ADDRESS          = 0x09,
++  SOCKS5_NO_HSDESC                  = 0x0A,
++  SOCKS5_NO_INTROS                  = 0x0B,
++  SOCKS5_TOR_MISC                   = 0x0C,
+ } socks5_reply_status_t;
+ 
+ /* ===== Insecure rng */
+diff --git a/src/or/connection_edge.c b/src/or/connection_edge.c
+index 4763bf5..7c3402a 100644
+--- a/src/or/connection_edge.c
++++ b/src/or/connection_edge.c
+@@ -1700,7 +1700,7 @@ connection_ap_handshake_rewrite_and_attach(edge_connection_t *conn,
+              safe_str_client(socks->address));
+     control_event_client_status(LOG_WARN, "SOCKS_BAD_HOSTNAME HOSTNAME=%s",
+                                 escaped(socks->address));
+-    connection_mark_unattached_ap(conn, END_STREAM_REASON_TORPROTOCOL);
++    connection_mark_unattached_ap(conn, END_STREAM_REASON_TORPROTOCOL_BADONIONADDRESS);
+     return -1;
+   }
+ 
+diff --git a/src/or/or.h b/src/or/or.h
+index a4e8e49..4da750b 100644
+--- a/src/or/or.h
++++ b/src/or/or.h
+@@ -565,6 +565,10 @@ typedef enum {
+ #define END_STREAM_REASON_NOTDIRECTORY 14
+ #define END_STREAM_REASON_ENTRYPOLICY 15
+ 
++#define END_STREAM_REASON_TORPROTOCOL_BADONIONADDRESS 16
++#define END_STREAM_REASON_TORPROTOCOL_HSDESC_UNAVAILABLE 17
++#define END_STREAM_REASON_TORPROTOCOL_HSDESC_NOINTROS 18
++
+ /* These high-numbered end reasons are not part of the official spec,
+  * and are not intended to be put in relay end cells. They are here
+  * to be more informative when sending back socks replies to the
+diff --git a/src/or/reasons.c b/src/or/reasons.c
+index 319e6c0..705b9bb 100644
+--- a/src/or/reasons.c
++++ b/src/or/reasons.c
+@@ -93,7 +93,7 @@ stream_end_reason_to_socks5_response(int reason)
+     case 0:
+       return SOCKS5_SUCCEEDED;
+     case END_STREAM_REASON_MISC:
+-      return SOCKS5_GENERAL_ERROR;
++      return SOCKS5_TOR_MISC;
+     case END_STREAM_REASON_RESOLVEFAILED:
+       return SOCKS5_HOST_UNREACHABLE;
+     case END_STREAM_REASON_CONNECTREFUSED:
+@@ -130,6 +130,13 @@ stream_end_reason_to_socks5_response(int reason)
+     case END_STREAM_REASON_PRIVATE_ADDR:
+       return SOCKS5_GENERAL_ERROR;
+ 
++    case END_STREAM_REASON_TORPROTOCOL_BADONIONADDRESS:
++      return SOCKS5_BAD_ONION_ADDRESS;
++    case END_STREAM_REASON_TORPROTOCOL_HSDESC_UNAVAILABLE:
++      return SOCKS5_NO_HSDESC;
++    case END_STREAM_REASON_TORPROTOCOL_HSDESC_NOINTROS:
++      return SOCKS5_NO_INTROS;
++
+     default:
+       log_fn(LOG_PROTOCOL_WARN, LD_PROTOCOL,
+              "Reason for ending (%d) not recognized; "
+diff --git a/src/or/rendclient.c b/src/or/rendclient.c
+index f951dad..64b2388 100644
+--- a/src/or/rendclient.c
++++ b/src/or/rendclient.c
+@@ -846,11 +846,21 @@ rend_client_desc_trynow(const char *query)
+         if (!conn->_base.marked_for_close)
+           connection_mark_unattached_ap(conn, END_STREAM_REASON_CANT_ATTACH);
+       }
+-    } else { /* 404, or fetch didn't get that far */
+-      log_notice(LD_REND,"Closing stream for '%s.onion': hidden service is "
++    } else {
++      if (rend_cache_lookup_entry(conn->rend_data->onion_address, -1,
++                                &entry) != 1) /* 404, or fetch didn't get that far */
++      {
++          connection_mark_unattached_ap(conn, END_STREAM_REASON_TORPROTOCOL_HSDESC_UNAVAILABLE);
++          log_notice(LD_REND,"Closing stream for '%s.onion': hs_desc is "
+                  "unavailable (try again later).",
+                  safe_str_client(query));
+-      connection_mark_unattached_ap(conn, END_STREAM_REASON_RESOLVEFAILED);
++      }
++      else
++      {   connection_mark_unattached_ap(conn, END_STREAM_REASON_TORPROTOCOL_HSDESC_NOINTROS);
++          log_notice(LD_REND,"Closing stream for '%s.onion': no intro points "
++                 "available (try again later).",
++                 safe_str_client(query));
++      }
+     }
+   } SMARTLIST_FOREACH_END(_conn);
+ }

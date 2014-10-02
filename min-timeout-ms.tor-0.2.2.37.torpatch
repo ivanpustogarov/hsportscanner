@@ -1,0 +1,36 @@
+diff --git a/src/or/circuituse.c b/src/or/circuituse.c
+index df33f63..9292ee7 100644
+--- a/src/or/circuituse.c
++++ b/src/or/circuituse.c
+@@ -225,9 +225,12 @@ circuit_get_best(edge_connection_t *conn, int must_be_open, uint8_t purpose,
+                                need_uptime,need_internal,now.tv_sec))
+       continue;
+ 
++    double min_timeout_ms = 10000; //magic number
++    if (circ_times.timeout_ms > min_timeout_ms)
++        min_timeout_ms = circ_times.timeout_ms;
+     if (purpose == CIRCUIT_PURPOSE_C_INTRODUCE_ACK_WAIT &&
+         !must_be_open && circ->state != CIRCUIT_STATE_OPEN &&
+-        tv_mdiff(&now, &circ->timestamp_created) > circ_times.timeout_ms) {
++        tv_mdiff(&now, &circ->timestamp_created) > min_timeout_ms) {
+       intro_going_on_but_too_old = 1;
+       continue;
+     }
+@@ -300,10 +303,13 @@ circuit_expire_building(void)
+     timersub(&now, &diff, &target);                         \
+   } while (0)
+ 
+-  SET_CUTOFF(general_cutoff, circ_times.timeout_ms);
+-  SET_CUTOFF(begindir_cutoff, circ_times.timeout_ms / 2.0);
+-  SET_CUTOFF(fourhop_cutoff, circ_times.timeout_ms * (4/3.0));
+-  SET_CUTOFF(cannibalize_cutoff, circ_times.timeout_ms / 2.0);
++  double min_timeout_ms = 10000; //magic number
++  if (circ_times.timeout_ms > min_timeout_ms)
++      min_timeout_ms = circ_times.timeout_ms;
++  SET_CUTOFF(general_cutoff, min_timeout_ms);
++  SET_CUTOFF(begindir_cutoff, min_timeout_ms / 2.0);
++  SET_CUTOFF(fourhop_cutoff, min_timeout_ms * (4/3.0));
++  SET_CUTOFF(cannibalize_cutoff, min_timeout_ms / 2.0);
+   SET_CUTOFF(close_cutoff, circ_times.close_ms);
+   SET_CUTOFF(extremely_old_cutoff, circ_times.close_ms*2 + 1000);
+ 
