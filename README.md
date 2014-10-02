@@ -9,6 +9,7 @@ try to connect to one port and check for the descriptor and then if it
 is available, scan all other ports.
 
 Files:
+
     hsportscanner.py -- The main program
     hiddservice-error-codes.tor-0.2.2.37.torpatch -- extends socks5 error codes. Apply to Tor before running the scan.
     min-timeout-ms.tor-0.2.2.37.torpatch -- changes circuit timeouts to 1000 (magic number).
@@ -20,6 +21,7 @@ Files:
 Run Tor with --socksport at 127.0.0.1:9050 (default) before making a scan.
 
 Examples:
+
     $ git clone https://git.torproject.org/tor.git
     $ cd tor
     $ git checkout tor-0.2.2.37
