@@ -1,6 +1,6 @@
 This is a simple (and rather ad-hoc) port scanner for Tor hidden
 services.  The scanner is a combination of a python script and two
-patches for tor v0.2.37. Nmap and strobe did not work well for me.
+patches for tor v0.2.2.37. Nmap and strobe did not work well for me.
 
 There is a problem specific to Tor hidden services scanning. Assume that
 we want to scan many ports but the hs_desc is not available.  This will
@@ -11,7 +11,8 @@ is available, scan all other ports.
 Files:
 
     hsportscanner.py -- The main program
-    hiddservice-error-codes.tor-0.2.2.37.torpatch -- extends socks5 error codes. Apply to Tor before running the scan.
+    hiddservice-error-codes.tor-0.2.2.37.torpatch -- extends socks5 error codes.
+                                                     Apply to Tor before running the scan.
     min-timeout-ms.tor-0.2.2.37.torpatch -- changes circuit timeouts to 1000 (magic number).
     socks.py -- Fixes some small bugs with parsing Socks5Error (lines 236 and 238). 
               Properly handles extending of error codes/messages.
@@ -39,12 +40,24 @@ Examples:
 
 
 Results can be:
-    DESC_UNAVAILABLE/NO_INTROS -- there was no HS descriptor or introduction points were unreachable.
-    CANT_ATTACH/TTL_EXPIRED    -- Normally it means that the circuit to either the hidden service
-                                  or responsisble hidden service directories could not be established by Tor. Repeat the scan.
-    DESC_HERE/PORT_CLOSED      -- we successfully downloaded the HS descriptor and connected to the hidden service, the probed port was closed. 
-    DESC_HERE/PORT_FILTERED    -- we successfully downloaded the HS descriptor and connected to the hidden service, the probed port might be open.
-    CONN_FAILED/UKNOWN_REASON  -- means that we downloaded the desc and tried to establish rend and intro circuit, but the connection failed. Repeat the scan.
-    DESC_HERE/OPEN             -- we successfully downloaded the HS descriptor and connected to the hidden service, the probed port is open.
+
+    DESC_UNAVAILABLE/NO_INTROS -- there was no HS descriptor or introduction
+                                  points were unreachable.
+    CANT_ATTACH/TTL_EXPIRED    -- Normally it means that the circuit to either
+                                  the hidden service or responsisble hidden
+				  service directories could not be established
+				  by Tor. Repeat the scan.
+    DESC_HERE/PORT_CLOSED      -- we successfully downloaded the HS descriptor
+                                  and connected to the hidden service, the prob
+				  ed port was closed. 
+    DESC_HERE/PORT_FILTERED    -- we successfully downloaded the HS descriptor
+                                  and connected to the hidden service, the
+				  probed port might be open.
+    CONN_FAILED/UKNOWN_REASON  -- means that we downloaded the desc and tried
+                                  to establish rend and intro circuit, but the
+				  connection failed. Repeat the scan.
+    DESC_HERE/OPEN             -- we successfully downloaded the HS descriptor
+                                  and connected to the hidden service, the
+				  probed port is open.
 
 BC:14iyH71Y9kEDUXdQCytizPNTvFNAUUn3do 
