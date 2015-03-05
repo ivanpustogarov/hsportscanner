@@ -1,3 +1,7 @@
+NOTE: this port scanner will not work for scanning Hidden Services hosted by
+future versions of Tor (due to introduction of new HiddenServiceAllowUnknownPorts
+option -- see Tor-alpha manual).
+
 This is a simple (and rather ad-hoc) port scanner for Tor hidden
 services.  The scanner is a combination of a python script and two
 patches for tor v0.2.2.37. Nmap and strobe did not work well for me.
